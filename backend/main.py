@@ -3,10 +3,22 @@ import numpy as np
 from shapely.geometry import Polygon
 
 # =============================
+# Configuration (like slicer settings)
+# =============================
+
+class CrochetSettings:
+    def __init__(self):
+        self.layer_height = 2.0  # mm per round
+        self.stitch_width = 3.0  # mm per stitch
+        self.magic_ring_stitches = 6  # starting stitches
+        
+
+# =============================
 # Mesh utilities
 # =============================
 
-def load_and_normalize_mesh(path: str) -> trimesh.Trimesh:
+def load_mesh(path: str) -> trimesh.Trimesh:
+    """Load mesh and keep original dimensions in mm"""
     mesh = trimesh.load(path)
 
     if not isinstance(mesh, trimesh.Trimesh):
@@ -14,14 +26,6 @@ def load_and_normalize_mesh(path: str) -> trimesh.Trimesh:
 
     if not mesh.is_watertight:
         raise ValueError("Mesh must be watertight")
-
-    # Center mesh
-    mesh.apply_translation(-mesh.centroid)
-
-    # Normalize height to 1.0
-    z_min, z_max = mesh.bounds[:, 2]
-    height = z_max - z_min
-    mesh.apply_scale(1.0 / height)
 
     return mesh
 
@@ -31,6 +35,7 @@ def load_and_normalize_mesh(path: str) -> trimesh.Trimesh:
 # =============================
 
 def slice_mesh(mesh, z, tol=1e-6):
+    """Slice mesh at height z (in mm)"""
     section = mesh.section(
         plane_origin=[0, 0, z],
         plane_normal=[0, 0, 1]
@@ -44,7 +49,6 @@ def slice_mesh(mesh, z, tol=1e-6):
     contours = []
 
     for entity in path2d.entities:
-        # entity.points are indices into path2d.vertices
         coords = path2d.vertices[entity.points]
 
         if len(coords) >= 3:
@@ -54,9 +58,11 @@ def slice_mesh(mesh, z, tol=1e-6):
 
     return contours
 
-def generate_slices(mesh, layer_height=0.02):
+
+def generate_slices(mesh, settings: CrochetSettings):
+    """Generate slices based on layer height"""
     z_min, z_max = mesh.bounds[:, 2]
-    z_levels = np.arange(z_min, z_max, layer_height)
+    z_levels = np.arange(z_min, z_max, settings.layer_height)
 
     slices = []
     for z in z_levels:
@@ -82,6 +88,7 @@ def contour_signature(poly: Polygon):
 
 
 def detect_parts(slices):
+    """Track contours through layers to identify separate parts"""
     parts = []
     next_id = 0
 
@@ -92,7 +99,7 @@ def detect_parts(slices):
 
         sigs = [contour_signature(c) for c in contours]
 
-        # Sort contours by area (largest first)
+        # Sort by area (largest first)
         order = sorted(range(len(sigs)), key=lambda i: sigs[i]["area"], reverse=True)
 
         for idx in order:
@@ -103,8 +110,8 @@ def detect_parts(slices):
                 last = part["history"][-1]
                 dist = np.linalg.norm(sig["centroid"] - last["centroid"])
 
-                # Heuristic: same part if centroids are close
-                if dist < 0.1:
+                # Same part if centroids are close
+                if dist < 10.0:  # 10mm threshold
                     part["history"].append({
                         **sig,
                         "slice": i
@@ -126,6 +133,7 @@ def detect_parts(slices):
 
 
 def classify_parts(parts):
+    """Identify main body and appendages"""
     avg_areas = [
         np.mean([h["area"] for h in p["history"]])
         for p in parts
@@ -143,36 +151,122 @@ def classify_parts(parts):
 
 
 # =============================
-# Stitch logic
+# Stitch calculation
 # =============================
 
-def contour_to_stitches(perimeter, stitch_width=0.05):
-    return max(3, round(perimeter / stitch_width))
+def perimeter_to_stitches(perimeter_mm, stitch_width):
+    """Calculate stitches needed for a given perimeter"""
+    stitches = round(perimeter_mm / stitch_width)
+    return max(6, stitches)  # Minimum 6 stitches
 
 
-def generate_stitch_rounds(part):
+def generate_stitch_pattern(part, settings: CrochetSettings):
+    """Generate stitch counts for each round"""
     rounds = []
     for h in part["history"]:
-        stitches = contour_to_stitches(h["perimeter"])
+        stitches = perimeter_to_stitches(h["perimeter"], settings.stitch_width)
         rounds.append(stitches)
     return rounds
 
 
+def add_magic_ring_start(rounds, settings: CrochetSettings):
+    """Force start with magic ring"""
+    result = [settings.magic_ring_stitches]
+    result.extend(rounds)
+    return result
+
+
+def add_closing_rounds(rounds, settings: CrochetSettings):
+    """Force end with decreases to 6 stitches"""
+    result = list(rounds)
+    
+    # Add decreasing rounds until we reach 6
+    if rounds[-1] > 6:
+        current = rounds[-1]
+        while current > 6:
+            # Decrease by roughly half, but not less than 6
+            next_count = max(6, current // 2)
+            result.append(next_count)
+            current = next_count
+    
+    return result
+
+
 # =============================
-# Pretty printing
+# Pattern generation
 # =============================
 
-def print_pattern(body, appendages):
-    print("\n=== BODY ===")
-    for i, stitches in enumerate(generate_stitch_rounds(body), start=1):
-        print(f"Round {i}: {stitches} stitches")
+def generate_instructions(rounds):
+    """Generate human-readable crochet instructions"""
+    instructions = []
+    
+    for i in range(len(rounds)):
+        current = rounds[i]
+        
+        if i == 0:
+            instructions.append(f"Round 1: Magic ring with {current} sc")
+            continue
+        
+        prev = rounds[i-1]
+        
+        if current == prev:
+            instructions.append(f"Round {i+1}: sc in each st ({current} sc)")
+        elif current > prev:
+            # Increases
+            inc_count = current - prev
+            instructions.append(f"Round {i+1}: {inc_count} increases evenly spaced ({current} sc)")
+        else:
+            # Decreases
+            dec_count = prev - current
+            instructions.append(f"Round {i+1}: {dec_count} decreases evenly spaced ({current} sc)")
+    
+    # Final round
+    instructions.append(f"Final: Pull through and fasten off")
+    
+    return instructions
 
+
+# =============================
+# Output
+# =============================
+
+def print_pattern(body, appendages, settings: CrochetSettings):
+    """Print complete crochet pattern"""
+    print("\n" + "="*50)
+    print("CROCHET PATTERN")
+    print("="*50)
+    print(f"\nSettings:")
+    print(f"  Layer height: {settings.layer_height} mm")
+    print(f"  Stitch width: {settings.stitch_width} mm")
+    print(f"  Magic ring: {settings.magic_ring_stitches} sc")
+    
+    print("\n" + "="*50)
+    print("MAIN BODY")
+    print("="*50)
+    
+    rounds = generate_stitch_pattern(body, settings)
+    rounds = add_magic_ring_start(rounds, settings)
+    rounds = add_closing_rounds(rounds, settings)
+    
+    instructions = generate_instructions(rounds)
+    for inst in instructions:
+        print(inst)
+    
     if appendages:
-        print("\n=== APPENDAGES ===")
+        print("\n" + "="*50)
+        print("APPENDAGES")
+        print("="*50)
+        
         for p in appendages:
-            print(f"\nPart {p['id']} (attach at round {p['history'][0]['slice']}):")
-            for i, stitches in enumerate(generate_stitch_rounds(p), start=1):
-                print(f"  Round {i}: {stitches} stitches")
+            print(f"\n--- Part {p['id']} (attach at round {p['history'][0]['slice'] + 2}) ---")
+            
+            rounds = generate_stitch_pattern(p, settings)
+            rounds = add_magic_ring_start(rounds, settings)
+            rounds = add_closing_rounds(rounds, settings)
+            
+            instructions = generate_instructions(rounds)
+            for inst in instructions:
+                print(inst)
 
 
 # =============================
@@ -180,13 +274,20 @@ def print_pattern(body, appendages):
 # =============================
 
 if __name__ == "__main__":
-    # CHANGE THIS to your STL / OBJ file
+    # Configuration
+    settings = CrochetSettings()
+    settings.layer_height = 2.0  # mm between rounds
+    settings.stitch_width = 3.0  # mm per stitch
+    settings.magic_ring_stitches = 6
+    
+    # CHANGE THIS to your STL/OBJ file
     MESH_PATH = "sphere.stl"
 
-    mesh = load_and_normalize_mesh(MESH_PATH)
-    slices = generate_slices(mesh)
+    # Generate pattern
+    mesh = load_mesh(MESH_PATH)
+    slices = generate_slices(mesh, settings)
     parts = detect_parts(slices)
-
     body, appendages = classify_parts(parts)
-
-    print_pattern(body, appendages)
+    
+    # Print pattern
+    print_pattern(body, appendages, settings)

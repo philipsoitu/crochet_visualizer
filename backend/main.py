@@ -155,9 +155,14 @@ def classify_parts(parts):
 # =============================
 
 def perimeter_to_stitches(perimeter_mm, stitch_width):
-    """Calculate stitches needed for a given perimeter"""
+    """Calculate stitches needed for a given perimeter, rounded to multiple of 6"""
     stitches = round(perimeter_mm / stitch_width)
-    return max(6, stitches)  # Minimum 6 stitches
+    stitches = max(6, stitches)  # Minimum 6 stitches
+    
+    # Round to nearest multiple of 6 for symmetry
+    stitches = round(stitches / 6) * 6
+    
+    return max(6, stitches)  # Ensure at least 6
 
 
 def generate_stitch_pattern(part, settings: CrochetSettings):
@@ -171,7 +176,13 @@ def generate_stitch_pattern(part, settings: CrochetSettings):
 
 def add_magic_ring_start(rounds, settings: CrochetSettings):
     """Force start with magic ring"""
+    if not rounds:
+        return [settings.magic_ring_stitches]
+    
+    # Start with magic ring
     result = [settings.magic_ring_stitches]
+    
+    # Just add the calculated rounds - they're already symmetric
     result.extend(rounds)
     return result
 
@@ -180,14 +191,10 @@ def add_closing_rounds(rounds, settings: CrochetSettings):
     """Force end with decreases to 6 stitches"""
     result = list(rounds)
     
-    # Add decreasing rounds until we reach 6
-    if rounds[-1] > 6:
-        current = rounds[-1]
-        while current > 6:
-            # Decrease by roughly half, but not less than 6
-            next_count = max(6, current // 2)
-            result.append(next_count)
-            current = next_count
+    # Just let it end at 6 - the rounds are already calculated
+    # Only add final round if needed
+    if result[-1] != 6:
+        result.append(6)
     
     return result
 
@@ -196,32 +203,97 @@ def add_closing_rounds(rounds, settings: CrochetSettings):
 # Pattern generation
 # =============================
 
-def generate_instructions(rounds):
-    """Generate human-readable crochet instructions"""
+def generate_compact_notation(rounds):
+    """Generate compact crochet notation"""
     instructions = []
     
     for i in range(len(rounds)):
         current = rounds[i]
         
         if i == 0:
-            instructions.append(f"Round 1: Magic ring with {current} sc")
+            instructions.append("ring")
             continue
         
         prev = rounds[i-1]
         
         if current == prev:
-            instructions.append(f"Round {i+1}: sc in each st ({current} sc)")
+            # No change - skip or could add if needed for clarity
+            continue
         elif current > prev:
             # Increases
             inc_count = current - prev
-            instructions.append(f"Round {i+1}: {inc_count} increases evenly spaced ({current} sc)")
+            
+            if inc_count == prev:
+                # Double: 2 sc in each stitch
+                instructions.append(f"sc{prev}inc")
+            else:
+                # Pattern of increases
+                # Calculate spacing between increases
+                spacing = prev // inc_count
+                remainder = prev % inc_count
+                
+                if spacing == 0:
+                    # More increases than original stitches
+                    instructions.append(f"sc{prev}inc (add {inc_count - prev} more)")
+                elif remainder == 0 and spacing > 0:
+                    # Even distribution
+                    pattern_sc = spacing - 1
+                    if pattern_sc == 0:
+                        instructions.append(f"sc{inc_count}inc")
+                    else:
+                        instructions.append(f"{inc_count}*[{pattern_sc}sc,sc2inc]")
+                else:
+                    # Uneven - build complex pattern
+                    parts = []
+                    sc_before = 0
+                    remaining_sc = prev
+                    remaining_inc = inc_count
+                    
+                    for _ in range(inc_count):
+                        sc_in_section = remaining_sc // remaining_inc
+                        if sc_in_section > 0:
+                            parts.append(f"{sc_in_section}sc")
+                        parts.append("sc2inc")
+                        remaining_sc -= sc_in_section
+                        remaining_inc -= 1
+                    
+                    instructions.append(",".join(parts))
         else:
             # Decreases
             dec_count = prev - current
-            instructions.append(f"Round {i+1}: {dec_count} decreases evenly spaced ({current} sc)")
-    
-    # Final round
-    instructions.append(f"Final: Pull through and fasten off")
+            
+            if dec_count == current:
+                # Halve: sc2tog all around
+                instructions.append(f"sc{current}tog")
+            else:
+                # Pattern of decreases
+                spacing = current // dec_count
+                remainder = current % dec_count
+                
+                if spacing == 0:
+                    instructions.append(f"sc{dec_count}tog")
+                elif remainder == 0 and spacing > 0:
+                    # Even distribution
+                    pattern_sc = spacing - 1
+                    if pattern_sc == 0:
+                        instructions.append(f"sc{dec_count}tog")
+                    else:
+                        instructions.append(f"{dec_count}*[{pattern_sc}sc,sc2tog]")
+                else:
+                    # Uneven - build pattern
+                    parts = []
+                    remaining_sc = current
+                    remaining_dec = dec_count
+                    
+                    for _ in range(dec_count):
+                        sc_in_section = remaining_sc // remaining_dec
+                        if sc_in_section > 0:
+                            parts.append(f"{sc_in_section}sc")
+                        parts.append("sc2tog")
+                        remaining_sc -= sc_in_section
+                        remaining_dec -= 1
+                    
+                    instructions.append(",".join(parts))
     
     return instructions
 
@@ -248,7 +320,7 @@ def print_pattern(body, appendages, settings: CrochetSettings):
     rounds = add_magic_ring_start(rounds, settings)
     rounds = add_closing_rounds(rounds, settings)
     
-    instructions = generate_instructions(rounds)
+    instructions = generate_compact_notation(rounds)
     for inst in instructions:
         print(inst)
     
@@ -264,7 +336,7 @@ def print_pattern(body, appendages, settings: CrochetSettings):
             rounds = add_magic_ring_start(rounds, settings)
             rounds = add_closing_rounds(rounds, settings)
             
-            instructions = generate_instructions(rounds)
+            instructions = generate_compact_notation(rounds)
             for inst in instructions:
                 print(inst)
 

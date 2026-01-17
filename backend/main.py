@@ -1,9 +1,26 @@
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import trimesh
 import numpy as np
 from shapely.geometry import Polygon
+import tempfile
+import os
+from typing import List, Optional
+
+app = FastAPI()
+
+# CORS for SvelteKit
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify your SvelteKit origin
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # =============================
-# Configuration (like slicer settings)
+# Configuration
 # =============================
 
 class CrochetSettings:
@@ -11,7 +28,7 @@ class CrochetSettings:
         self.layer_height = 2.0  # mm per round
         self.stitch_width = 3.0  # mm per stitch
         self.magic_ring_stitches = 6  # starting stitches
-        
+
 
 # =============================
 # Mesh utilities
@@ -299,67 +316,104 @@ def generate_compact_notation(rounds):
 
 
 # =============================
-# Output
+# Pydantic models
 # =============================
 
-def print_pattern(body, appendages, settings: CrochetSettings):
-    """Print complete crochet pattern"""
-    print("\n" + "="*50)
-    print("CROCHET PATTERN")
-    print("="*50)
-    print(f"\nSettings:")
-    print(f"  Layer height: {settings.layer_height} mm")
-    print(f"  Stitch width: {settings.stitch_width} mm")
-    print(f"  Magic ring: {settings.magic_ring_stitches} sc")
+class PatternResponse(BaseModel):
+    pattern: List[str]
+    settings: dict
+    appendages: Optional[List[dict]] = None
+
+
+# =============================
+# API Endpoints
+# =============================
+
+@app.post("/generate-pattern", response_model=PatternResponse)
+async def generate_pattern(
+    file: UploadFile = File(...),
+    layer_height: float = Form(2.0),
+    stitch_width: float = Form(3.0),
+    magic_ring_stitches: int = Form(6)
+):
+    """
+    Generate a crochet pattern from an STL/OBJ file
     
-    print("\n" + "="*50)
-    print("MAIN BODY")
-    print("="*50)
+    Parameters:
+    - file: STL or OBJ mesh file
+    - layer_height: mm between rounds (default: 2.0)
+    - stitch_width: mm per stitch (default: 3.0)
+    - magic_ring_stitches: starting stitches (default: 6)
+    """
     
-    rounds = generate_stitch_pattern(body, settings)
-    rounds = add_magic_ring_start(rounds, settings)
-    rounds = add_closing_rounds(rounds, settings)
+    # Validate file type
+    if not file.filename.endswith(('.stl', '.obj', '.STL', '.OBJ')):
+        raise HTTPException(status_code=400, detail="File must be .stl or .obj")
     
-    instructions = generate_compact_notation(rounds)
-    for inst in instructions:
-        print(inst)
+    # Save uploaded file temporarily
+    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
     
-    if appendages:
-        print("\n" + "="*50)
-        print("APPENDAGES")
-        print("="*50)
+    try:
+        # Configure settings
+        settings = CrochetSettings()
+        settings.layer_height = layer_height
+        settings.stitch_width = stitch_width
+        settings.magic_ring_stitches = magic_ring_stitches
         
+        # Generate pattern
+        mesh = load_mesh(tmp_path)
+        slices = generate_slices(mesh, settings)
+        parts = detect_parts(slices)
+        body, appendages = classify_parts(parts)
+        
+        # Generate main body pattern
+        rounds = generate_stitch_pattern(body, settings)
+        rounds = add_magic_ring_start(rounds, settings)
+        rounds = add_closing_rounds(rounds, settings)
+        pattern = generate_compact_notation(rounds)
+        
+        # Generate appendage patterns
+        appendage_patterns = []
         for p in appendages:
-            print(f"\n--- Part {p['id']} (attach at round {p['history'][0]['slice'] + 2}) ---")
+            a_rounds = generate_stitch_pattern(p, settings)
+            a_rounds = add_magic_ring_start(a_rounds, settings)
+            a_rounds = add_closing_rounds(a_rounds, settings)
+            a_pattern = generate_compact_notation(a_rounds)
             
-            rounds = generate_stitch_pattern(p, settings)
-            rounds = add_magic_ring_start(rounds, settings)
-            rounds = add_closing_rounds(rounds, settings)
-            
-            instructions = generate_compact_notation(rounds)
-            for inst in instructions:
-                print(inst)
+            appendage_patterns.append({
+                "id": p["id"],
+                "attach_at_round": p["history"][0]["slice"] + 2,
+                "pattern": a_pattern
+            })
+        
+        return PatternResponse(
+            pattern=pattern,
+            settings={
+                "layer_height": settings.layer_height,
+                "stitch_width": settings.stitch_width,
+                "magic_ring_stitches": settings.magic_ring_stitches
+            },
+            appendages=appendage_patterns if appendage_patterns else None
+        )
+        
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing mesh: {str(e)}")
+    finally:
+        # Clean up temp file
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
 
-# =============================
-# Main
-# =============================
+@app.get("/")
+async def root():
+    return {"message": "Crochet Pattern Generator API", "endpoint": "/generate-pattern"}
+
 
 if __name__ == "__main__":
-    # Configuration
-    settings = CrochetSettings()
-    settings.layer_height = 2.0  # mm between rounds
-    settings.stitch_width = 3.0  # mm per stitch
-    settings.magic_ring_stitches = 6
-    
-    # CHANGE THIS to your STL/OBJ file
-    MESH_PATH = "sphere.stl"
-
-    # Generate pattern
-    mesh = load_mesh(MESH_PATH)
-    slices = generate_slices(mesh, settings)
-    parts = detect_parts(slices)
-    body, appendages = classify_parts(parts)
-    
-    # Print pattern
-    print_pattern(body, appendages, settings)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

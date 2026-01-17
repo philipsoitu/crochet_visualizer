@@ -22,10 +22,12 @@
           ps: with ps; [
             numpy
             trimesh
-            uvicorn
             shapely
-            fastapi
             scipy
+
+            fastapi
+            uvicorn
+            python-multipart
           ]
         );
 

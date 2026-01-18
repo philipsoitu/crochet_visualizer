@@ -13,6 +13,16 @@ npx sv create
 # create a new project in my-app
 npx sv create my-app
 ```
+## Backend
+
+cd backend
+python main.py
+
+## Frontend
+
+cd frontend
+bun install
+bun run dev
 
 ## Developing
 

@@ -51,23 +51,6 @@
     <!-- Main Tool Section -->
     <section class="py-12 lg:py-16">
       <div class="container mx-auto px-4">
-        <!-- Tab Navigation -->
-        <div class="flex justify-center mb-8">
-          <div class="inline-flex bg-muted rounded-lg p-1 gap-1">
-            <button
-              onclick={() => activeTab = 'upload'}
-              class="px-6 py-2.5 rounded-md text-sm font-medium transition-all {activeTab === 'upload' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
-            >
-              Upload Model
-            </button>
-            <button
-              onclick={() => activeTab = 'create'}
-              class="px-6 py-2.5 rounded-md text-sm font-medium transition-all {activeTab === 'create' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}"
-            >
-              Create Shape
-            </button>
-          </div>
-        </div>
 
         <div class="grid lg:grid-cols-2 gap-8 lg:gap-12">
           <!-- Input Panel -->
@@ -206,8 +189,6 @@
       </div>
     </section>
   </main>
-
-  <Footer />
 
   <!-- Modals -->
   <SignupModal />

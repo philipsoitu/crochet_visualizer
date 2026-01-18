@@ -133,7 +133,8 @@ export const actions = {
       backendFormData.append('magic_ring_stitches', magicRingStitches.toString());
 
       // Call FastAPI backend to generate pattern
-      const backendUrl = env.BACKEND_URL || 'http://localhost:8000';
+      // const backendUrl = env.BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = 'http://172.105.27.124:8000';
       const response = await fetch(`${backendUrl}/generate-pattern`, {
         method: 'POST',
         body: backendFormData

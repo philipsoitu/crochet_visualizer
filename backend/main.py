@@ -24,10 +24,19 @@ app.add_middleware(
 # =============================
 
 class CrochetSettings:
-    def __init__(self):
-        self.layer_height = 2.0  # mm per round
-        self.stitch_width = 3.0  # mm per stitch
-        self.magic_ring_stitches = 6  # starting stitches
+    def __init__(self, layer_height: float = 2.0, stitch_width: float = 3.0, magic_ring_stitches: int = 6):
+        """
+        Initialize crochet settings with values from API request.
+        Defaults are only used as fallbacks if not provided.
+        
+        Args:
+            layer_height: mm between rounds (default: 2.0)
+            stitch_width: mm per stitch (default: 3.0)
+            magic_ring_stitches: starting stitches (default: 6)
+        """
+        self.layer_height = layer_height
+        self.stitch_width = stitch_width
+        self.magic_ring_stitches = magic_ring_stitches
 
 
 # =============================
@@ -357,11 +366,12 @@ async def generate_pattern(
         tmp_path = tmp.name
     
     try:
-        # Configure settings
-        settings = CrochetSettings()
-        settings.layer_height = layer_height
-        settings.stitch_width = stitch_width
-        settings.magic_ring_stitches = magic_ring_stitches
+        # Configure settings using values from API request
+        settings = CrochetSettings(
+            layer_height=layer_height,
+            stitch_width=stitch_width,
+            magic_ring_stitches=magic_ring_stitches
+        )
         
         # Generate pattern
         mesh = load_mesh(tmp_path)

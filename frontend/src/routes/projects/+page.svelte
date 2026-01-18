@@ -2,6 +2,9 @@
   export let data;
   const userId = data.user.sub;
 
+  let models = data.models ?? [];
+  console.log(models)
+
   let file = null;
   let layerHeight = 2.0;
   let stitchWidth = 3.0;
@@ -74,6 +77,7 @@
 </script>
 
 <h1>User ID: {userId}</h1>
+<p>Models: {models}</p>
 
 
 <div class="container">

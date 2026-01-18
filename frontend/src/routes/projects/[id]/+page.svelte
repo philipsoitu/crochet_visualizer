@@ -14,7 +14,7 @@
   let magicRingStitches = $state(data.model.magicRingStitches);
   let selectedFile = $state(null);
   let isGenerating = $state(false);
-  let audioTone = $state(50);
+  let audioTone = $state(0);
 
   // Update from form data when it changes
   $effect(() => {

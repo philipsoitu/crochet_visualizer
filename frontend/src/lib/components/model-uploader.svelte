@@ -32,11 +32,11 @@
     }
   
     function processFile(uploadedFile) {
-      const validExtensions = ['.obj', '.stl', '.glb', '.gltf'];
+      const validExtensions = ['.obj', '.stl'];
       const extension = uploadedFile.name.toLowerCase().slice(uploadedFile.name.lastIndexOf('.'));
       
       if (!validExtensions.includes(extension)) {
-        alert('Please upload a valid 3D file (.obj, .stl, .glb, .gltf)');
+        alert('Please upload a valid 3D file (.obj, .stl)');
         return;
       }
   
@@ -124,7 +124,7 @@
             <p class="text-foreground font-medium">Drop your 3D model here</p>
             <p class="text-sm text-muted-foreground mt-1">or click to browse</p>
           </div>
-          <p class="text-xs text-muted-foreground">Supports .obj, .stl, .glb, .gltf</p>
+          <p class="text-xs text-muted-foreground">Supports .stl, .obj, and whatever else trimesh accepts</p>
         </div>
       </div>
     {:else}

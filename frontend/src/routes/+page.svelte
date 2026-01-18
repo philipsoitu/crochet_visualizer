@@ -4,28 +4,27 @@
     import ShapeEditor from '$lib/components/shape-editor.svelte';
     import PatternOutput from '$lib/components/pattern-output.svelte';
     import Footer from '$lib/components/footer.svelte';
-  
+
     import GetStarted from '$lib/components/GetStarted.svelte';
     import SignupModal from '$lib/components/SignupModal.svelte';
     import SignIn from '$lib/components/SignIn.svelte';
-    
-    let activeTab = $state('upload');
+
     let voxelData = $state(null);
     let patternSettings = $state({
       resolution: 16,
       stitchType: 'sc',
       colorPalette: ['#E8D5C4', '#8B7355', '#D4A574', '#F5E6D3', '#6B4423']
     });
-  
+
     function handleModelProcessed(data) {
       voxelData = data;
     }
-  
+
     function handleShapeCreated(data) {
       voxelData = data;
     }
 </script>
-  
+
 <div class="min-h-screen flex flex-col">
   <Header />
 
@@ -57,19 +56,15 @@
           <div class="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
             <div class="p-6 border-b border-border">
               <h2 class="text-xl font-semibold text-card-foreground">
-                {activeTab === 'upload' ? '3D Model Input' : 'Shape Creator'}
+                3D Model Input
               </h2>
               <p class="text-sm text-muted-foreground mt-1">
-                {activeTab === 'upload' ? 'Upload .obj, .stl, or .glb files' : 'Build shapes using primitives'}
+                Upload .obj, .stl, or others maybe
               </p>
             </div>
-            
+
             <div class="p-6">
-              {#if activeTab === 'upload'}
                 <ModelUploader onModelProcessed={handleModelProcessed} settings={patternSettings} />
-              {:else}
-                <ShapeEditor onShapeCreated={handleShapeCreated} settings={patternSettings} />
-              {/if}
             </div>
           </div>
 
@@ -79,7 +74,7 @@
               <h2 class="text-xl font-semibold text-card-foreground">Pattern Settings</h2>
               <p class="text-sm text-muted-foreground mt-1">Customize your crochet pattern output</p>
             </div>
-            
+
             <div class="p-6 space-y-6">
               <!-- Resolution -->
               <div>

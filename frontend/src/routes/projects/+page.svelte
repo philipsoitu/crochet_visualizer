@@ -70,63 +70,66 @@
   }
 </script>
 
+<h1>as</h1>
+
+
 <div class="container">
   <h1>🧶 Crochet Pattern Generator</h1>
 
   <form on:submit|preventDefault={generatePattern}>
-  	<div class="form-group">
-  		<label for="file">Upload STL/OBJ File:</label>
-  		<input
-  			type="file"
-  			id="file"
-  			accept=".stl,.obj,.STL,.OBJ"
-  			on:change={handleFileChange}
-  			required
-  		/>
-  	</div>
+    <div class="form-group">
+      <label for="file">Upload STL/OBJ File:</label>
+      <input
+        type="file"
+        id="file"
+        accept=".stl,.obj,.STL,.OBJ"
+        on:change={handleFileChange}
+        required
+      />
+    </div>
 
-  	<div class="form-group">
-  		<label for="layerHeight">Layer Height (mm):</label>
-  		<input
-  			type="number"
-  			id="layerHeight"
-  			bind:value={layerHeight}
-  			step="0.1"
-  			min="0.1"
-  		/>
-  	</div>
+    <div class="form-group">
+      <label for="layerHeight">Layer Height (mm):</label>
+      <input
+        type="number"
+        id="layerHeight"
+        bind:value={layerHeight}
+        step="0.1"
+        min="0.1"
+      />
+    </div>
 
-  	<div class="form-group">
-  		<label for="stitchWidth">Stitch Width (mm):</label>
-  		<input
-  			type="number"
-  			id="stitchWidth"
-  			bind:value={stitchWidth}
-  			step="0.1"
-  			min="0.1"
-  		/>
-  	</div>
+    <div class="form-group">
+      <label for="stitchWidth">Stitch Width (mm):</label>
+      <input
+        type="number"
+        id="stitchWidth"
+        bind:value={stitchWidth}
+        step="0.1"
+        min="0.1"
+      />
+    </div>
 
-  	<div class="form-group">
-  		<label for="magicRing">Magic Ring Stitches:</label>
-  		<input
-  			type="number"
-  			id="magicRing"
-  			bind:value={magicRingStitches}
-  			min="3"
-  			max="12"
-  		/>
-  	</div>
+    <div class="form-group">
+      <label for="magicRing">Magic Ring Stitches:</label>
+      <input
+        type="number"
+        id="magicRing"
+        bind:value={magicRingStitches}
+        min="3"
+        max="12"
+      />
+    </div>
 
-  	<button type="submit" disabled={loading}>
-  		{loading ? 'Generating...' : 'Generate Pattern'}
-  	</button>
+    <button type="submit" disabled={loading}>
+      {loading ? 'Generating...' : 'Generate Pattern'}
+    </button>
   </form>
 
   {#if status}
-  	<div class="status {statusType}">
-  		{status}
-  	</div>
+    <div class="status {statusType}">
+      {status}
+    </div>
   {/if}
 </div>
 

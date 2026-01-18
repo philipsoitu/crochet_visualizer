@@ -41,6 +41,12 @@ def load_mesh(path: str) -> trimesh.Trimesh:
     if not isinstance(mesh, trimesh.Trimesh):
         raise ValueError("Invalid mesh file")
 
+
+    if not mesh.is_watertight:
+        print("fixing water tightness")
+        mesh.repair.fill_holes()
+        trimesh.repair.fix_normals(mesh)
+
     if not mesh.is_watertight:
         raise ValueError("Mesh must be watertight")
 

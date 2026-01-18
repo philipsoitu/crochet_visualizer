@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { connectDB } from '../../../db';
 import { Model } from '$lib/models/Model';
+import { env } from '$env/dynamic/private';
 
 export async function load({ params, parent }) {
   const { models, user } = await parent(); // <-- reuse layout data
@@ -132,7 +133,7 @@ export const actions = {
       backendFormData.append('magic_ring_stitches', magicRingStitches.toString());
 
       // Call FastAPI backend to generate pattern
-      const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = env.BACKEND_URL || 'http://localhost:8000';
       const response = await fetch(`${backendUrl}/generate-pattern`, {
         method: 'POST',
         body: backendFormData

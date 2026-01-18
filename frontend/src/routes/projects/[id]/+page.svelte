@@ -12,6 +12,8 @@
   let layerHeight = $state(data.model.layerHeight);
   let stitchWidth = $state(data.model.stitchWidth);
   let magicRingStitches = $state(data.model.magicRingStitches);
+  let selectedFile = $state(null);
+  let isGenerating = $state(false);
 
   // Update from form data when it changes
   $effect(() => {
@@ -22,6 +24,13 @@
       if (form.magicRingStitches !== undefined) magicRingStitches = form.magicRingStitches;
     }
   });
+
+  function handleFileChange(event) {
+    const target = event.target;
+    if (target.files && target.files.length > 0) {
+      selectedFile = target.files[0];
+    }
+  }
 </script>
 
 <Header/>
@@ -56,7 +65,14 @@
           <form
             method="POST"
             action="?/generate"
-            use:enhance
+            use:enhance={() => {
+              isGenerating = true;
+              return async ({ update }) => {
+                await update();
+                isGenerating = false;
+              };
+            }}
+            enctype="multipart/form-data"
             class="space-y-6"
           >
             <div>
@@ -143,6 +159,26 @@
               </p>
             </div>
 
+            <div>
+              <label
+                for="modelFile"
+                class="block text-sm font-medium text-card-foreground mb-2"
+              >
+                3D Model File (STL/OBJ)
+              </label>
+              <input
+                type="file"
+                id="modelFile"
+                name="modelFile"
+                accept=".stl,.obj,.STL,.OBJ"
+                onchange={handleFileChange}
+                class="w-full rounded-lg border border-input bg-background px-4 py-2 text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground file:cursor-pointer hover:file:opacity-90"
+              />
+              <p class="text-xs text-muted-foreground mt-1">
+                {selectedFile ? `Selected: ${selectedFile?.name || 'file'}` : 'Upload a 3D model file to generate pattern (optional if file already exists)'}
+              </p>
+            </div>
+
             {#if formData?.error}
               <div class="rounded-lg bg-destructive/10 border border-destructive/20 p-4">
                 <p class="text-sm text-destructive-foreground">{formData.error}</p>
@@ -157,9 +193,10 @@
 
             <button
               type="submit"
-              class="w-full rounded-lg bg-primary px-6 py-3 text-base font-medium text-primary-foreground hover:opacity-90 transition-opacity"
+              disabled={isGenerating}
+              class="w-full rounded-lg bg-primary px-6 py-3 text-base font-medium text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Generate Pattern
+              {isGenerating ? 'Generating Pattern...' : 'Generate Pattern'}
             </button>
           </form>
         </div>

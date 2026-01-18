@@ -197,6 +197,7 @@
                   bind:value={audioTone}
                   min="0"
                   max="1"
+                  step="0.01"
                   class="flex-1 h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary"
                 />
                 <span class="text-xs text-muted-foreground font-medium">Mean</span>

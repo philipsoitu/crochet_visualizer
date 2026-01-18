@@ -1,4 +1,7 @@
 <script>
+  export let data;
+  const userId = data.user.sub;
+
   let file = null;
   let layerHeight = 2.0;
   let stitchWidth = 3.0;
@@ -70,7 +73,7 @@
   }
 </script>
 
-<h1>as</h1>
+<h1>User ID: {userId}</h1>
 
 
 <div class="container">

@@ -1,7 +1,8 @@
+import { env } from '$env/dynamic/private';
 import mongoose from "mongoose";
 
 export async function connectDB() {
-  const uri = Bun.env.MONGO_URI;
+  const uri = env.MONGO_URI;
 
   if (!uri) {
     throw new Error("MONGO_URI is not defined");

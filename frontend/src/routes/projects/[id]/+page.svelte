@@ -14,6 +14,7 @@
   let magicRingStitches = $state(data.model.magicRingStitches);
   let selectedFile = $state(null);
   let isGenerating = $state(false);
+  let audioTone = $state(50);
 
   // Update from form data when it changes
   $effect(() => {
@@ -39,7 +40,7 @@
   <main class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="mb-6">
-      <a
+      
         href="/projects"
         class="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block"
       >
@@ -176,6 +177,32 @@
               />
               <p class="text-xs text-muted-foreground mt-1">
                 {selectedFile ? `Selected: ${selectedFile?.name || 'file'}` : 'Upload a 3D model file to generate pattern (optional if file already exists)'}
+              </p>
+            </div>
+
+            <!-- Audio Tone Slider -->
+            <div>
+              <label
+                for="audioTone"
+                class="block text-sm font-medium text-card-foreground mb-2"
+              >
+                Audio
+              </label>
+              <div class="flex items-center gap-3">
+                <span class="text-xs text-muted-foreground font-medium">Kind</span>
+                <input
+                  type="range"
+                  id="audioTone"
+                  name="audioTone"
+                  bind:value={audioTone}
+                  min="0"
+                  max="1"
+                  class="flex-1 h-2 bg-background rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <span class="text-xs text-muted-foreground font-medium">Mean</span>
+              </div>
+              <p class="text-xs text-muted-foreground mt-1">
+                Adjust the tone of audio instructions
               </p>
             </div>
 

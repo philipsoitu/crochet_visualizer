@@ -9,7 +9,7 @@
           </h1>
 
           <p class="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            Upload any 3D model or create shapes from scratch. Get detailed crochet patterns with visual grids and written instructions.
+            Upload any 3D model and get detailed crochet patterns with written instructions.
           </p>
 
           <div class="mt-8 flex justify-center">

@@ -1,4 +1,6 @@
 <script>
+  import Header from '$lib/components/header.svelte';
+
   export let data;
   const userId = data.user.sub;
 
@@ -76,151 +78,98 @@
   }
 </script>
 
+<Header/>
+
 <h1>User ID: {userId}</h1>
 <p>Models: {models}</p>
 
 
-<div class="container">
-  <h1>🧶 Crochet Pattern Generator</h1>
+{#if models.length === 0}
+  <p>No projects yet.</p>
+{:else}
+  <div class="grid">
+    {#each models as m (m._id)}
+      <a class="card" href={`/projects/${m._id}`}>
+        <div class="cardHeader">
+          <h2>{m.modelName}</h2>
+          <span class="pill">{m._id.slice(0, 6)}…</span>
+        </div>
 
-  <form on:submit|preventDefault={generatePattern}>
-    <div class="form-group">
-      <label for="file">Upload STL/OBJ File:</label>
-      <input
-        type="file"
-        id="file"
-        accept=".stl,.obj,.STL,.OBJ"
-        on:change={handleFileChange}
-        required
-      />
-    </div>
+        <div class="meta">
+          <div><strong>Layer</strong> {m.layerHeight}</div>
+          <div><strong>Stitch</strong> {m.stitchWidth}</div>
+          <div><strong>MR</strong> {m.magicRingStitches}</div>
+        </div>
 
-    <div class="form-group">
-      <label for="layerHeight">Layer Height (mm):</label>
-      <input
-        type="number"
-        id="layerHeight"
-        bind:value={layerHeight}
-        step="0.1"
-        min="0.1"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="stitchWidth">Stitch Width (mm):</label>
-      <input
-        type="number"
-        id="stitchWidth"
-        bind:value={stitchWidth}
-        step="0.1"
-        min="0.1"
-      />
-    </div>
-
-    <div class="form-group">
-      <label for="magicRing">Magic Ring Stitches:</label>
-      <input
-        type="number"
-        id="magicRing"
-        bind:value={magicRingStitches}
-        min="3"
-        max="12"
-      />
-    </div>
-
-    <button type="submit" disabled={loading}>
-      {loading ? 'Generating...' : 'Generate Pattern'}
-    </button>
-  </form>
-
-  {#if status}
-    <div class="status {statusType}">
-      {status}
-    </div>
-  {/if}
-</div>
+        <div class="footer">
+          <span>{m.output?.length ?? 0} lines</span>
+          <span class="cta">Open →</span>
+        </div>
+      </a>
+    {/each}
+  </div>
+{/if}
 
 <style>
-	.container {
-		max-width: 600px;
-		margin: 50px auto;
-		padding: 20px;
-	}
+  .title { font-size: 1.75rem; margin: 1rem 0 0.25rem; }
+  .muted { opacity: 0.7; margin-bottom: 1rem; }
 
-	h1 {
-		margin-top: 0;
-		color: #333;
-	}
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
 
-	form {
-		background: white;
-		padding: 30px;
-		border-radius: 8px;
-		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-	}
+  .card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 1rem;
+    transition: transform 120ms ease, border-color 120ms ease;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.28);
+  }
 
-	.form-group {
-		margin-bottom: 20px;
-	}
+  .cardHeader {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
 
-	label {
-		display: block;
-		margin-bottom: 5px;
-		font-weight: 500;
-		color: #555;
-	}
+  h2 { margin: 0; font-size: 1.1rem; }
 
-	input[type='file'],
-	input[type='number'] {
-		width: 100%;
-		padding: 8px;
-		border: 1px solid #ddd;
-		border-radius: 4px;
-		box-sizing: border-box;
-	}
+  .pill {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.18);
+    opacity: 0.8;
+    white-space: nowrap;
+  }
 
-	input[type='number'] {
-		max-width: 200px;
-	}
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    opacity: 0.9;
+    font-size: 0.95rem;
+  }
 
-	button {
-		background: #4caf50;
-		color: white;
-		padding: 12px 24px;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 16px;
-		width: 100%;
-	}
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0.9rem;
+    opacity: 0.85;
+    font-size: 0.95rem;
+  }
 
-	button:hover:not(:disabled) {
-		background: #45a049;
-	}
-
-	button:disabled {
-		background: #ccc;
-		cursor: not-allowed;
-	}
-
-	.status {
-		margin-top: 20px;
-		padding: 10px;
-		border-radius: 4px;
-	}
-
-	.status.loading {
-		background: #e3f2fd;
-		color: #1976d2;
-	}
-
-	.status.success {
-		background: #e8f5e9;
-		color: #2e7d32;
-	}
-
-	.status.error {
-		background: #ffebee;
-		color: #c62828;
-	}
+  .cta { font-weight: 600; }
 </style>

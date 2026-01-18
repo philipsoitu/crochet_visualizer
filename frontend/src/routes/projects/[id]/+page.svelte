@@ -40,7 +40,7 @@
   <main class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="mb-6">
-      
+      <a
         href="/projects"
         class="text-sm text-muted-foreground hover:text-foreground mb-4 inline-block"
       >
